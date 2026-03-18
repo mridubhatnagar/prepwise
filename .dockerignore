@@ -1,0 +1,7 @@
+prepitvenv/
+__pycache__/
+*.pyc
+*.pyo
+.env.local
+.env.prod
+.git/

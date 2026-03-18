@@ -1,0 +1,97 @@
+import logging
+import uuid
+from abc import ABC, abstractmethod
+from datetime import date
+from decimal import Decimal
+
+from sqlalchemy import func, cast, Date
+from sqlalchemy.exc import OperationalError, IntegrityError, DatabaseError as SADatabaseError
+
+from exceptions import DatabaseError
+from infra.postgres import SessionLocal
+from spend.models import SpendLog
+
+logger = logging.getLogger(__name__)
+
+
+class ISpendDAO(ABC):
+    @abstractmethod
+    def create(
+        self,
+        user_id: str | None,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        estimated_cost_usd: Decimal,
+        endpoint: str | None,
+    ) -> SpendLog: ...
+
+    @abstractmethod
+    def get_total_per_day(self, for_date: date) -> float: ...
+
+    @abstractmethod
+    def get_total(self) -> float: ...
+
+
+class SpendDAO(ISpendDAO):
+    def __init__(self):
+        self.db = SessionLocal()
+
+    def __del__(self):
+        self.db.close()
+
+    def create(
+        self,
+        user_id: str | None,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        estimated_cost_usd: Decimal,
+        endpoint: str | None,
+    ) -> SpendLog:
+        try:
+            log = SpendLog(
+                id=uuid.uuid4(),
+                user_id=uuid.UUID(user_id) if user_id else None,
+                model=model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                estimated_cost_usd=estimated_cost_usd,
+                endpoint=endpoint,
+            )
+            self.db.add(log)
+            self.db.commit()
+            self.db.refresh(log)
+            logger.info(
+                "SpendLog created: model=%s cost=%.6f user_id=%s",
+                model, estimated_cost_usd, user_id,
+            )
+            return log
+        except (OperationalError, IntegrityError, SADatabaseError) as exc:
+            logger.error("SpendDAO.create failed: %s", exc)
+            raise DatabaseError("Failed to create spend log") from exc
+
+    def get_total_per_day(self, for_date: date) -> float:
+        """Return the sum of estimated_cost_usd for all spend logs on the given date."""
+        try:
+            total = (
+                self.db.query(func.coalesce(func.sum(SpendLog.estimated_cost_usd), 0))
+                .filter(cast(SpendLog.logged_at, Date) == for_date)
+                .scalar()
+            )
+            return float(total)
+        except (OperationalError, SADatabaseError) as exc:
+            logger.error("SpendDAO.get_total_per_day failed for date=%s: %s", for_date, exc)
+            raise DatabaseError("Failed to fetch total spend") from exc
+
+    def get_total(self) -> float:
+        """Return the sum of estimated_cost_usd across all spend logs."""
+        try:
+            total = (
+                self.db.query(func.coalesce(func.sum(SpendLog.estimated_cost_usd), 0))
+                .scalar()
+            )
+            return float(total)
+        except (OperationalError, SADatabaseError) as exc:
+            logger.error("SpendDAO.get_total failed: %s", exc)
+            raise DatabaseError("Failed to fetch all-time total spend") from exc

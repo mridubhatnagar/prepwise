@@ -1,0 +1,30 @@
+<!--
+  sidebar-item.html
+  Reusable Alpine.js component template — reference snippet.
+
+  Usage (rendered via x-for over groupedDocuments):
+
+  <template x-for="(group, gi) in groupedDocuments" :key="gi">
+    <div>
+      <!-- Category label -->
+      <div class="doc-category" :class="gi > 0 ? 'mt-2' : ''">
+        <div class="doc-category-label" x-text="group.category"></div>
+      </div>
+      <!-- Documents in this category -->
+      <template x-for="(doc, di) in group.docs" :key="di">
+        <div class="doc-item">
+          <svg class="doc-icon" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span x-text="doc.name"></span>
+        </div>
+      </template>
+    </div>
+  </template>
+
+  Props (fields on each group object from groupedDocuments getter):
+    category  — string e.g. "System Design"
+    docs      — array of { name, category }
+-->

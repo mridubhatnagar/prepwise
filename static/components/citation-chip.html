@@ -1,0 +1,20 @@
+<!--
+  citation-chip.html
+  Reusable Alpine.js component template — reference snippet.
+
+  Usage (rendered via x-for over message.citations):
+
+  <div class="citations" x-show="msg.citations && msg.citations.length > 0">
+    <template x-for="(cit, ci) in msg.citations" :key="ci">
+      <div class="citation-chip">
+        <div class="citation-dot"></div>
+        <span x-text="cit.doc_name"></span>
+      </div>
+    </template>
+  </div>
+
+  Props (fields on each citation object):
+    doc_name       — string e.g. "cap_theorem.md"
+    section_title  — string e.g. "CAP Theorem Overview"
+    category       — string e.g. "System Design"
+-->

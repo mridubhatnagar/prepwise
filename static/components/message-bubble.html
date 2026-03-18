@@ -1,0 +1,65 @@
+<!--
+  message-bubble.html
+  Reusable Alpine.js component template — reference snippet.
+
+  Usage in chat.html (rendered via x-for over messages):
+
+  <template x-for="(msg, idx) in messages" :key="idx">
+    <div class="message-row" :class="msg.role === 'user' ? 'user' : 'ai'">
+
+      <!-- Bubble -->
+      <div class="message-bubble" x-html="msg.content"></div>
+
+      <!-- Citations (AI messages only) -->
+      <div class="citations" x-show="msg.citations && msg.citations.length > 0">
+        <template x-for="(cit, ci) in msg.citations" :key="ci">
+          <div class="citation-chip">
+            <div class="citation-dot"></div>
+            <span x-text="cit.doc_name"></span>
+          </div>
+        </template>
+      </div>
+
+      <!-- Follow-up questions (AI messages only) -->
+      <div class="followups" x-show="msg.follow_up_questions && msg.follow_up_questions.length > 0">
+        <div class="followup-label">Follow-up questions</div>
+        <template x-for="(q, qi) in msg.follow_up_questions" :key="qi">
+          <button class="followup-pill" @click="sendMessage(q)" x-text="q"></button>
+        </template>
+      </div>
+
+      <!-- Feedback buttons (AI messages only) -->
+      <div class="feedback-buttons" x-show="msg.role === 'assistant'">
+        <button class="feedback-btn"
+                :class="{ 'active': feedbacks[msg.id] === 'up' }"
+                @click="submitFeedback(msg.id, 'up')"
+                :disabled="!msg.id"
+                aria-label="Thumbs up">
+          <!-- thumbs-up SVG -->
+        </button>
+        <button class="feedback-btn"
+                :class="{ 'active': feedbacks[msg.id] === 'down' }"
+                @click="submitFeedback(msg.id, 'down')"
+                :disabled="!msg.id"
+                aria-label="Thumbs down">
+          <!-- thumbs-down SVG -->
+        </button>
+      </div>
+
+      <!-- Timestamp -->
+      <div class="message-time" x-text="msg.time"></div>
+    </div>
+  </template>
+
+  Props (fields on each message object):
+    id                   — string UUID (assistant messages only; null for user messages)
+    role                 — 'user' | 'assistant'
+    content              — string (plain text or safe HTML from backend)
+    citations            — array of { doc_name, section_title, category }
+    follow_up_questions  — array of strings
+    time                 — formatted time string e.g. "10:02 AM"
+
+  State dependencies (from chatApp()):
+    feedbacks            — map of message_id → 'up' | 'down' | null
+    submitFeedback(id, rating) — updates feedbacks map; re-click deselects
+-->

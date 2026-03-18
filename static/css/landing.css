@@ -1,0 +1,374 @@
+[x-cloak] { display: none !important; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  height: 100vh;
+  display: flex;
+  font-family: 'Segoe UI', sans-serif;
+  overflow: hidden;
+}
+
+/* ── Flash Alert ── */
+.flash-container {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: 100%;
+  max-width: 500px;
+  padding: 0 16px;
+}
+
+.flash-alert {
+  background: #fff8ec;
+  border: 1px solid #f5c842;
+  border-left: 4px solid #f5a623;
+  border-radius: 10px;
+  padding: 13px 16px;
+  gap: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+}
+
+.flash-icon-wrap {
+  color: #d97706;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.flash-message {
+  flex: 1;
+  font-size: 0.875rem;
+  color: #6b4c00;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.flash-close {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: #b07d20;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.flash-close:hover {
+  background: rgba(245, 166, 35, 0.15);
+  color: #92600a;
+}
+
+/* ── Left Panel ── */
+.left-panel {
+  flex: 1;
+  background: linear-gradient(160deg, #f0ebff 0%, #e4d9ff 50%, #d8ccff 100%);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 40px 48px 40px 64px;
+  position: relative;
+  overflow: hidden;
+  gap: 24px;
+}
+
+.left-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.left-illustration {
+  flex: 0 0 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.left-panel::before {
+  content: '';
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: rgba(186, 104, 200, 0.06);
+  top: -120px;
+  right: -80px;
+  pointer-events: none;
+}
+
+.left-panel::after {
+  content: '';
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: rgba(186, 104, 200, 0.06);
+  bottom: -60px;
+  left: -60px;
+  pointer-events: none;
+}
+
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(186, 104, 200, 0.12);
+  border: 1px solid rgba(186, 104, 200, 0.25);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #8b3fa8;
+  letter-spacing: 0.04em;
+  margin-bottom: 20px;
+}
+
+.brand-badge span.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ba68c8;
+  display: inline-block;
+}
+
+.left-panel h1 {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #1e0a30;
+  line-height: 1.25;
+  max-width: 500px;
+  margin-bottom: 14px;
+  letter-spacing: -0.5px;
+}
+
+.left-panel h1 em,
+.left-panel .tagline em {
+  font-style: normal;
+  color: #8b3fa8;
+  font-weight: 600;
+}
+
+.left-panel .tagline {
+  font-size: 1rem;
+  color: #5a4470;
+  max-width: 440px;
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+
+.feature-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.feature-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.92rem;
+  color: #3d2558;
+  font-weight: 500;
+}
+
+.feature-list .check-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ba68c8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.feature-list .check-icon svg {
+  width: 11px;
+  height: 11px;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.illustration-wrap {
+  pointer-events: none;
+}
+
+/* ── Right Panel ── */
+.right-panel {
+  width: 420px;
+  flex-shrink: 0;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 56px 44px;
+  box-shadow: -4px 0 32px rgba(60, 20, 80, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.app-logo .logo-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ba68c8, #8b3fa8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -1px;
+}
+
+.app-logo .logo-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #1e0a30;
+  letter-spacing: -0.5px;
+}
+
+.app-logo .logo-name span {
+  color: #ba68c8;
+}
+
+.right-panel h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e0a30;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.right-panel .subtitle {
+  font-size: 0.875rem;
+  color: #8a96a3;
+  margin-bottom: 36px;
+  text-align: center;
+}
+
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 20px;
+  background-color: #ffffff;
+  border: 1.5px solid #dadce0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #3c4043;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+
+.google-btn:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  color: #3c4043;
+}
+
+.google-logo { width: 20px; height: 20px; }
+
+.divider {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 28px 0;
+  color: #c8d0da;
+  font-size: 0.8rem;
+}
+
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e8ecf2;
+}
+
+.info-text {
+  font-size: 0.8rem;
+  color: #a0aab4;
+  text-align: center;
+  line-height: 1.65;
+}
+
+.attribution {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.68rem;
+  color: #b0bac4;
+}
+
+.attribution a {
+  color: #b0bac4;
+  text-decoration: none;
+}
+
+/* ── Mobile Responsive (< 768px) ── */
+@media (max-width: 767.98px) {
+  body {
+    flex-direction: column;
+    overflow: auto;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .left-panel {
+    flex: none;
+    flex-direction: column;
+    padding: 32px 24px 24px;
+    gap: 16px;
+  }
+
+  .left-illustration {
+    display: none;
+  }
+
+  .left-panel h1 {
+    font-size: 1.8rem;
+  }
+
+  .right-panel {
+    width: 100%;
+    flex-shrink: 1;
+    padding: 40px 24px 48px;
+    box-shadow: none;
+    border-top: 1px solid #e8e0f8;
+  }
+
+  .flash-container {
+    top: 12px;
+    left: 0;
+    transform: none;
+    max-width: 100%;
+    padding: 0 12px;
+    width: 100%;
+  }
+}
