@@ -2,9 +2,7 @@ services:
     postgres:
       image: postgres:16
       container_name: prepit_postgres                                                                                                                                                                
-      restart: unless-stopped                                                                                                                                                           
-      env_file:                                                                                                                                                                         
-        - .env.local                                                                                                                                                                   
+      restart: unless-stopped                                                                                                                                                                                                                                                                                                                              
       ports:                                                                                                                                                                            
         - "5432:5432"                                                                                                                                                                   
       volumes:                                                                                                                                                                          
@@ -40,9 +38,7 @@ services:
     pgadmin:
       image: dpage/pgadmin4:latest
       container_name: prepit_pgadmin                                                                                                                                                      
-      restart: unless-stopped
-      env_file:
-        - .env.local                                                                                                                                                 
+      restart: unless-stopped                                                                                                                                                 
       ports:
         - "5050:80"                                                                                                                                                                     
       depends_on: 
@@ -52,8 +48,6 @@ services:
       build: .
       container_name: prepit_app
       restart: unless-stopped
-      env_file:
-        - .env.local
       ports:
         - "8000:8000"
       depends_on:                                                                                                                                                                       

@@ -121,8 +121,9 @@ def _setup_phoenix_tracing() -> None:
         from phoenix.otel import register
 
         endpoint = f"http://{config.PHOENIX_HOST}:{config.PHOENIX_PORT}/v1/traces"
+        project_name = f"prepwise-{config.SETUP_ENV}"
         tracer_provider = register(
-            project_name="prepwise",
+            project_name=project_name,
             endpoint=endpoint,
         )
         OpenAIInstrumentor().instrument(tracer_provider=tracer_provider)

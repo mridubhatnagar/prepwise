@@ -6,6 +6,24 @@ Invite-only. Sign in with Google.
 
 ---
 
+## Features
+
+- **RAG-powered answers** — hybrid search (BM25 + semantic) over a curated knowledgebase; returns structured answers with source citations
+- **Adaptive responses** — classifies the question type (concept, specific aspect, deeper reasoning, system design) and adjusts response depth in a single LLM call
+- **Cited sources** — every answer includes citation chips linking back to the source document and section
+- **Follow-up suggestions** — each response includes 2–3 suggested follow-up questions rendered as clickable pills
+- **Conversation continuity** — last 10 messages passed as context to the LLM for multi-turn conversations
+- **Context limit enforcement** — conversation is capped; banner prompts the user to clear and continue
+- **Message feedback** — thumbs up/down on each AI response; ratings sent to Arize Phoenix for analysis
+- **Prompt injection defense** — input blocklist before LLM call; output guardrail strips hallucinated citations
+- **Spend tracking** — every OpenAI API call logged with cost; daily crossing-point email alert fires once when threshold is exceeded
+- **Rate limiting** — per-user limit on chat, per-IP limit on auth initiation
+- **Observability** — full RAG trace (query → retrieval → prompt → response) in self-hosted Arize Phoenix
+- **Session management** — single active session per user; Clear Chat deactivates and creates a new one; messages retained in DB
+- **Invite-only access** — Google OAuth with an allowlist; unauthorized attempts are logged
+
+---
+
 ## Tech Stack
 
 | Concern | Choice |
