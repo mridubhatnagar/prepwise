@@ -51,14 +51,6 @@ function uniqueStrings(items) {
   return [...new Set(items)];
 }
 
-/** @returns {string} Two-letter initials derived from a display name. */
-function computeInitials(name) {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0][0].toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 /**
  * Alpine.js data object for the landing page.
  *
@@ -80,9 +72,6 @@ function landingPage() {
       const error = params.get('error');
 
       const messages = {
-        'invite_only':          "This account isn't on the invite list. Please contact the admin to request access.",
-        'unverified_email':     "Your Google account email is not verified. Please verify it and try again.",
-        'auth_failed':          "Sign-in failed due to an authentication error. Please try again.",
         'session_expired':      "Your session has expired. Please verify again.",
         'verification_failed':  "Verification failed. Please try again.",
       };
@@ -161,7 +150,6 @@ function landingPage() {
  *   messages           — array of message objects (user + AI)
  *   documents          — array of { name, category } — drives sidebar
  *   suggestions        — empty-state suggestion chips
- *   user               — { name, initials } — drives app bar
  *   inputText          — bound to textarea via x-model
  *   isLoading          — shows typing indicator while awaiting response
  *   contextLimitReached — shows/hides context limit banner
@@ -186,11 +174,6 @@ function chatApp() {
       'What is sharding?',
       'Explain the Transformer architecture',
     ],
-
-    user: {
-      name:     '',
-      initials: '',
-    },
 
     inputText:           '',
     isLoading:           false,
@@ -226,21 +209,9 @@ function chatApp() {
 
     async init() {
       await Promise.all([
-        this._loadUser(),
         this._loadDocuments(),
         this._loadMessages(),
       ]);
-    },
-
-    async _loadUser() {
-      try {
-        const res = await fetch('/api/auth/me');
-        if (res.status === 401) { this._redirectUnauthorized(); return; }
-        if (!res.ok) return;
-        const { data } = await res.json();
-        this.user.name     = data.user.name || '';
-        this.user.initials = computeInitials(data.user.name);
-      } catch (_) {}
     },
 
     async _loadDocuments() {
@@ -368,16 +339,6 @@ function chatApp() {
       this.messages            = [];
       this.contextLimitReached = false;
       this._errorBanner        = '';
-    },
-
-    /**
-     * Sign out via POST /api/auth/logout, then redirect to the landing page.
-     */
-    async signOut() {
-      try {
-        await fetch('/api/auth/logout', { method: 'POST' });
-      } catch (_) {}
-      window.location.href = '/';
     },
 
     /**

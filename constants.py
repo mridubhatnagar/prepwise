@@ -21,11 +21,6 @@ FEEDBACK_CHANGE_LIMIT: int = 3
 # Number of recent messages passed to the LLM as conversational history
 LLM_HISTORY_WINDOW: int = 10
 
-# Google OAuth endpoints
-GOOGLE_AUTH_URL: str = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL: str = "https://oauth2.googleapis.com/token"
-GOOGLE_USERINFO_URL: str = "https://www.googleapis.com/oauth2/v3/userinfo"
-
 # Cloudflare Turnstile
 TURNSTILE_VERIFY_URL: str = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
