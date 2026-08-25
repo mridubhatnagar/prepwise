@@ -52,6 +52,14 @@ class Config:
     SPEND_ALERT_THRESHOLD: float = float(os.environ.get("SPEND_ALERT_THRESHOLD", "5.0"))
     ALERT_EMAIL: str = os.environ.get("ALERT_EMAIL", "")
 
+    # Hard daily spend cap — blank/unset means no cap is enforced, so chat is
+    # never blocked unless a value is explicitly configured.
+    DAILY_SPEND_CAP_USD: float | None = (
+        float(os.environ.get("DAILY_SPEND_CAP_USD"))
+        if os.environ.get("DAILY_SPEND_CAP_USD")
+        else None
+    )
+
     # SMTP
     SMTP_HOST: str = os.environ.get("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT: int = int(os.environ.get("SMTP_PORT", "587"))

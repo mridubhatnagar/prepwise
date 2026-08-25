@@ -10,7 +10,13 @@ from chat.validators import PostMessageRequest
 from config import config
 from constants import VISITOR_COOKIE_NAME
 from enums import MessageRole
-from exceptions import DatabaseError, EmbeddingError, LLMError, RetrievalError
+from exceptions import (
+    DatabaseError,
+    EmbeddingError,
+    LLMError,
+    RetrievalError,
+    SpendCapExceededError,
+)
 from feedback.dao import FeedbackDAO, IFeedbackDAO
 from feedback.service import FeedbackService
 from limiter import limiter
@@ -128,6 +134,11 @@ async def post_message(
         raise HTTPException(
             status_code=400,
             detail="Unable to process your request. Please try again.",
+        )
+    except SpendCapExceededError:
+        raise HTTPException(
+            status_code=503,
+            detail="Chat is temporarily unavailable — we've reached today's usage limit. Please try again tomorrow.",
         )
     except (EmbeddingError, RetrievalError):
         raise HTTPException(

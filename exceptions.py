@@ -20,3 +20,7 @@ class OAuthError(Exception):
 
 class TurnstileError(Exception):
     """Raised when the Cloudflare Turnstile siteverify request fails."""
+
+
+class SpendCapExceededError(Exception):
+    """Raised when today's spend has reached the configured hard daily cap."""
