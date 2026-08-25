@@ -33,8 +33,8 @@ class ChatRequestHandler:
         self.rag_orchestrator = rag_orchestrator
         self.spend_service = spend_service
 
-    def handle_chat_message(self, user_id: str, session_id: str, query: str) -> dict:
-        """Orchestrate the full RAG pipeline for a single user query.
+    def handle_chat_message(self, visitor_id: str, session_id: str, query: str) -> dict:
+        """Orchestrate the full RAG pipeline for a single visitor query.
 
         Returns a response dict matching the POST /api/chat/messages envelope:
         { answer, assistant_message_id, citations, follow_up_questions, context_status }
@@ -43,8 +43,8 @@ class ChatRequestHandler:
 
         if context_status is not None:
             logger.info(
-                "Context limit reached for user_id=%s session_id=%s",
-                user_id,
+                "Context limit reached for visitor_id=%s session_id=%s",
+                visitor_id,
                 session_id,
             )
             return context_status
@@ -52,10 +52,10 @@ class ChatRequestHandler:
         history = self._get_history(session_id)
         response = self._generate_response(query, history)
 
-        assistant_message_id = self._persist(user_id, session_id, query, response)
+        assistant_message_id = self._persist(visitor_id, session_id, query, response)
 
         if response.get("input_tokens", 0) > 0 or response.get("output_tokens", 0) > 0:
-            self._log_spend(user_id, response)
+            self._log_spend(visitor_id, response)
 
         updated_details = self.chat_service.get_chat_context_details(session_id)
 
@@ -127,21 +127,21 @@ class ChatRequestHandler:
 
         return self.rag_orchestrator.build_response(query, chunks, history)
 
-    def _persist(self, user_id: str, session_id: str, query: str, response: dict) -> str:
+    def _persist(self, visitor_id: str, session_id: str, query: str, response: dict) -> str:
         """Save user message and assistant response; return the assistant message id."""
         user_token_count = _count_tokens(query)
         assistant_token_count = _count_tokens(response["answer"])
 
         self.chat_service.create_chat_message(
             session_id=session_id,
-            user_id=user_id,
+            visitor_id=visitor_id,
             role=MessageRole.USER,
             content=query,
             token_count=user_token_count,
         )
         assistant_msg = self.chat_service.create_chat_message(
             session_id=session_id,
-            user_id=user_id,
+            visitor_id=visitor_id,
             role=MessageRole.ASSISTANT,
             content=response["answer"],
             token_count=assistant_token_count,
@@ -150,11 +150,11 @@ class ChatRequestHandler:
         )
         return str(assistant_msg.id)
 
-    def _log_spend(self, user_id: str, response: dict) -> None:
+    def _log_spend(self, visitor_id: str, response: dict) -> None:
         """Record LLM and embedding token spend, then trigger crossing-point alert check."""
         try:
             llm_spend = self.spend_service.create_spend(
-                user_id=user_id,
+                visitor_id=visitor_id,
                 model=LLM_MODEL,
                 input_tokens=response.get("input_tokens", 0),
                 output_tokens=response.get("output_tokens", 0),
@@ -165,7 +165,7 @@ class ChatRequestHandler:
             embedding_tokens = response.get("embedding_tokens", 0)
             if embedding_tokens > 0:
                 embed_spend = self.spend_service.create_spend(
-                    user_id=user_id,
+                    visitor_id=visitor_id,
                     model=EMBEDDING_MODEL,
                     input_tokens=embedding_tokens,
                     output_tokens=0,
@@ -175,4 +175,4 @@ class ChatRequestHandler:
                     current_cost=embed_spend.estimated_cost_usd
                 )
         except Exception as exc:
-            logger.error("Spend logging failed for user_id=%s: %s", user_id, exc)
+            logger.error("Spend logging failed for visitor_id=%s: %s", visitor_id, exc)
