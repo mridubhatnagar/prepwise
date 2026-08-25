@@ -1,3 +1,4 @@
+import calendar
 import logging
 import smtplib
 from datetime import date
@@ -68,6 +69,32 @@ class SpendService:
 
     def get_total_spend(self) -> float:
         return self.spend_dao.get_total()
+
+    def get_monthly_spend_summary(self) -> dict:
+        """Return all-time spend grouped by year/month, in the /api/spend/monthly shape.
+
+        Years cover every month since the first spend_logs row (no bounded
+        window); the last entry is the current, still-accumulating month.
+        """
+        totals = self.spend_dao.get_monthly_totals()
+
+        monthly_spend: list[dict] = []
+        for entry in totals:
+            month_entry = {
+                "month": calendar.month_name[entry["month"]],
+                "cost": round(entry["cost"], 2),
+            }
+            if monthly_spend and monthly_spend[-1]["year"] == entry["year"]:
+                monthly_spend[-1]["months"].append(month_entry)
+            else:
+                monthly_spend.append({"year": entry["year"], "months": [month_entry]})
+
+        return {
+            "currency": "USD",
+            "note": "LLM and embedding API costs only — excludes server/infra costs.",
+            "total": round(sum(entry["cost"] for entry in totals), 2),
+            "monthly_spend": monthly_spend,
+        }
 
     def spend_email_alert(self, current_cost: Decimal) -> None:
         """Send a spend alert email if the cumulative threshold has just been crossed.

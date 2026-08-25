@@ -63,5 +63,9 @@ class Config:
     PHOENIX_PORT: int = int(os.environ.get("PHOENIX_PORT", "6006"))
     PHOENIX_GRPC_PORT: int = int(os.environ.get("PHOENIX_GRPC_PORT", "4317"))
 
+    # Docs / internal API Basic Auth
+    DOCS_USERNAME: str = os.environ.get("DOCS_USERNAME", "")
+    DOCS_PASSWORD: str = os.environ.get("DOCS_PASSWORD", "")
+
 
 config = Config()

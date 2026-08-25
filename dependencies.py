@@ -1,7 +1,9 @@
 import logging
+import secrets
 from dataclasses import dataclass
 
-from fastapi import HTTPException, Request
+from fastapi import Depends, HTTPException, Request
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from jose import ExpiredSignatureError, JWTError, jwt
 
 from auth.dao import UserDAO
@@ -10,6 +12,26 @@ from config import config
 from exceptions import DatabaseError
 
 logger = logging.getLogger(__name__)
+
+_http_basic = HTTPBasic()
+
+
+def verify_docs_credentials(credentials: HTTPBasicCredentials = Depends(_http_basic)) -> None:
+    """FastAPI dependency gating internal-only routes (/docs, /api/spend/monthly).
+
+    Compares the supplied username/password against config.DOCS_USERNAME /
+    config.DOCS_PASSWORD using secrets.compare_digest to avoid timing attacks.
+    """
+    username_ok = secrets.compare_digest(credentials.username, config.DOCS_USERNAME)
+    password_ok = secrets.compare_digest(credentials.password, config.DOCS_PASSWORD)
+
+    if not (username_ok and password_ok):
+        logger.warning("Basic Auth rejected for username=%s", credentials.username)
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
 
 @dataclass

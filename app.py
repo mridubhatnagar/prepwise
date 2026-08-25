@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -10,7 +10,7 @@ from slowapi.errors import RateLimitExceeded
 
 from config import config
 from constants import FEEDBACK_CHANGE_LIMIT
-from dependencies import get_current_user
+from dependencies import get_current_user, verify_docs_credentials
 from enums import Scope
 from infra.postgres import SessionLocal
 from limiter import limiter
@@ -28,7 +28,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="PrepWise",
-        docs_url=None,   # served manually at /docs with scope check
+        docs_url=None,   # served manually at /docs, gated by HTTP Basic Auth
         redoc_url=None,
     )
 
@@ -66,15 +66,7 @@ def create_app() -> FastAPI:
         })
 
     @app.get("/docs", include_in_schema=False)
-    async def docs(request: Request):
-        try:
-            user = get_current_user(request)
-        except HTTPException:
-            return FileResponse("templates/error.html", status_code=403)
-
-        if Scope.DOCS not in user.scopes:
-            return FileResponse("templates/error.html", status_code=403)
-
+    async def docs(credentials: None = Depends(verify_docs_credentials)):
         return get_swagger_ui_html(openapi_url="/openapi.json", title="PrepWise API Docs")
 
     @app.exception_handler(403)
@@ -93,11 +85,13 @@ def create_app() -> FastAPI:
     from chat.controller import router as chat_router
     from documents.controller import router as documents_router
     from feedback.controller import router as feedback_router
+    from spend.controller import router as spend_router
 
     app.include_router(auth_router)
     app.include_router(chat_router)
     app.include_router(documents_router)
     app.include_router(feedback_router)
+    app.include_router(spend_router)
 
     return app
 
