@@ -67,7 +67,7 @@ function landingPage() {
     _dismissTimer:      null,
     _turnstileWidgetId: null,
 
-    init() {
+    async init() {
       const params = new URLSearchParams(window.location.search);
       const error = params.get('error');
 
@@ -82,6 +82,10 @@ function landingPage() {
         this._startDismissTimer();
       }
 
+      // The Turnstile script loads async — window.turnstile isn't guaranteed
+      // to exist yet when Alpine calls init(), so wait for its onload callback
+      // (wired up in landing.html) before rendering the widget.
+      await window._turnstileReady;
       this._renderTurnstile();
     },
 
