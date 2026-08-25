@@ -27,6 +27,13 @@ class Config:
     GOOGLE_CLIENT_SECRET: str = os.environ.get("GOOGLE_CLIENT_SECRET", "")
     GOOGLE_REDIRECT_URI: str = os.environ.get("GOOGLE_REDIRECT_URI")
 
+    # Cloudflare Turnstile
+    TURNSTILE_SITE_KEY: str = os.environ.get("TURNSTILE_SITE_KEY", "")
+    TURNSTILE_SECRET_KEY: str = os.environ.get("TURNSTILE_SECRET_KEY", "")
+
+    # Cookies
+    COOKIE_SECURE: bool = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+
     # PostgreSQL
     DATABASE_URL: str = os.environ.get("DATABASE_URL")
 
@@ -42,6 +49,7 @@ class Config:
 
     # External API timeouts
     GOOGLE_API_TIMEOUT: int = int(os.environ.get("GOOGLE_API_TIMEOUT", "10"))
+    TURNSTILE_API_TIMEOUT: int = int(os.environ.get("TURNSTILE_API_TIMEOUT", "10"))
 
     # Rate limiting
     CHAT_RATE_LIMIT: str = os.environ.get("CHAT_RATE_LIMIT", "20")
