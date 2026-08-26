@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import func, cast, Date
+from sqlalchemy import func, cast, extract, Date
 from sqlalchemy.exc import OperationalError, IntegrityError, DatabaseError as SADatabaseError
 
 from exceptions import DatabaseError
@@ -31,6 +31,9 @@ class ISpendDAO(ABC):
 
     @abstractmethod
     def get_total(self) -> float: ...
+
+    @abstractmethod
+    def get_monthly_totals(self) -> list[dict]: ...
 
 
 class SpendDAO(ISpendDAO):
@@ -95,3 +98,29 @@ class SpendDAO(ISpendDAO):
         except (OperationalError, SADatabaseError) as exc:
             logger.error("SpendDAO.get_total failed: %s", exc)
             raise DatabaseError("Failed to fetch all-time total spend") from exc
+
+    def get_monthly_totals(self) -> list[dict]:
+        """Return estimated_cost_usd summed per (year, month) of logged_at, oldest first.
+
+        Each entry: {"year": int, "month": int, "cost": float}.
+        """
+        try:
+            year = extract("year", SpendLog.logged_at)
+            month = extract("month", SpendLog.logged_at)
+            rows = (
+                self.db.query(
+                    year.label("year"),
+                    month.label("month"),
+                    func.coalesce(func.sum(SpendLog.estimated_cost_usd), 0).label("cost"),
+                )
+                .group_by(year, month)
+                .order_by(year, month)
+                .all()
+            )
+            return [
+                {"year": int(row.year), "month": int(row.month), "cost": float(row.cost)}
+                for row in rows
+            ]
+        except (OperationalError, SADatabaseError) as exc:
+            logger.error("SpendDAO.get_monthly_totals failed: %s", exc)
+            raise DatabaseError("Failed to fetch monthly spend totals") from exc

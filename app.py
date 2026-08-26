@@ -28,7 +28,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="PrepWise",
-        docs_url=None,   # served manually at /docs with scope check
+        docs_url=None,   # served manually at /docs, gated by HTTP Basic Auth
         redoc_url=None,
     )
 
@@ -85,11 +85,13 @@ def create_app() -> FastAPI:
     from chat.controller import router as chat_router
     from documents.controller import router as documents_router
     from feedback.controller import router as feedback_router
+    from spend.controller import router as spend_router
 
     app.include_router(access_router)
     app.include_router(chat_router)
     app.include_router(documents_router)
     app.include_router(feedback_router)
+    app.include_router(spend_router)
 
     return app
 
