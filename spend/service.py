@@ -46,7 +46,7 @@ class SpendService:
 
     def create_spend(
         self,
-        user_id: str | None,
+        visitor_id: str | None,
         model: str,
         input_tokens: int,
         output_tokens: int,
@@ -55,7 +55,7 @@ class SpendService:
         """Calculate cost and persist a SpendLog entry."""
         estimated_cost_usd = _calculate_cost(model, input_tokens, output_tokens)
         return self.spend_dao.create(
-            user_id=user_id,
+            visitor_id=visitor_id,
             model=model,
             input_tokens=input_tokens,
             output_tokens=output_tokens,

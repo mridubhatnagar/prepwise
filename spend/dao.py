@@ -18,7 +18,7 @@ class ISpendDAO(ABC):
     @abstractmethod
     def create(
         self,
-        user_id: str | None,
+        visitor_id: str | None,
         model: str,
         input_tokens: int,
         output_tokens: int,
@@ -42,7 +42,7 @@ class SpendDAO(ISpendDAO):
 
     def create(
         self,
-        user_id: str | None,
+        visitor_id: str | None,
         model: str,
         input_tokens: int,
         output_tokens: int,
@@ -52,7 +52,7 @@ class SpendDAO(ISpendDAO):
         try:
             log = SpendLog(
                 id=uuid.uuid4(),
-                user_id=uuid.UUID(user_id) if user_id else None,
+                visitor_id=uuid.UUID(visitor_id) if visitor_id else None,
                 model=model,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
@@ -63,8 +63,8 @@ class SpendDAO(ISpendDAO):
             self.db.commit()
             self.db.refresh(log)
             logger.info(
-                "SpendLog created: model=%s cost=%.6f user_id=%s",
-                model, estimated_cost_usd, user_id,
+                "SpendLog created: model=%s cost=%.6f visitor_id=%s",
+                model, estimated_cost_usd, visitor_id,
             )
             return log
         except (OperationalError, IntegrityError, SADatabaseError) as exc:

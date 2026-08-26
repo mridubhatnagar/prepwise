@@ -16,23 +16,16 @@ class Config:
     SETUP_ENV: str = os.environ.get("SETUP_ENV", "local")
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "")
 
-    # JWT
-    JWT_SECRET: str = os.environ.get("JWT_SECRET", "")
-    JWT_ALGORITHM: str = os.environ.get("JWT_ALGORITHM")
-    JWT_EXPIRY_SECONDS: int = int(os.environ.get("JWT_EXPIRY_SECONDS", "3600"))
-    JWT_COOKIE_SECURE: bool = os.environ.get("JWT_COOKIE_SECURE", "false").lower() == "true"
-
-    # Google OAuth
-    GOOGLE_CLIENT_ID: str = os.environ.get("GOOGLE_CLIENT_ID", "")
-    GOOGLE_CLIENT_SECRET: str = os.environ.get("GOOGLE_CLIENT_SECRET", "")
-    GOOGLE_REDIRECT_URI: str = os.environ.get("GOOGLE_REDIRECT_URI")
-
     # Cloudflare Turnstile
     TURNSTILE_SITE_KEY: str = os.environ.get("TURNSTILE_SITE_KEY", "")
     TURNSTILE_SECRET_KEY: str = os.environ.get("TURNSTILE_SECRET_KEY", "")
 
     # Cookies
     COOKIE_SECURE: bool = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+
+    # /docs Basic Auth
+    DOCS_USERNAME: str = os.environ.get("DOCS_USERNAME", "")
+    DOCS_PASSWORD: str = os.environ.get("DOCS_PASSWORD", "")
 
     # PostgreSQL
     DATABASE_URL: str = os.environ.get("DATABASE_URL")
@@ -48,7 +41,6 @@ class Config:
     OPENAI_TIMEOUT: int = int(os.environ.get("OPENAI_TIMEOUT", "60"))
 
     # External API timeouts
-    GOOGLE_API_TIMEOUT: int = int(os.environ.get("GOOGLE_API_TIMEOUT", "10"))
     TURNSTILE_API_TIMEOUT: int = int(os.environ.get("TURNSTILE_API_TIMEOUT", "10"))
 
     # Rate limiting
