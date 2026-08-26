@@ -12,7 +12,7 @@
 - [x] Create a key pair (.pem file) — save it, you can't download it again
 - [x] Configure storage: **30GB gp2**
 - [x] Launch instance
-- [ ] Assign an **Elastic IP** to the instance (so IP doesn't change on restart)
+- [x] Assign an **Elastic IP** to the instance (so IP doesn't change on restart)
 
 ## 3. Security Group (Firewall Rules)
 - [x] Allow **SSH** (port 22) — your IP only

@@ -31,3 +31,4 @@ Thumbs.db
 # Claude Code local config
 .claude/settings.local.json
 .claude/hooks/
+.claude/snippets.md
