@@ -20,7 +20,7 @@ class IChatMessageDAO(ABC):
     def create(
         self,
         session_id: str,
-        user_id: str,
+        visitor_id: str,
         role: MessageRole,
         content: str,
         token_count: int,
@@ -29,7 +29,7 @@ class IChatMessageDAO(ABC):
     ) -> ChatMessage: ...
 
     @abstractmethod
-    def list(self, user_id: str, limit: int | None = None) -> list[ChatMessage]: ...
+    def list(self, visitor_id: str, limit: int | None = None) -> list[ChatMessage]: ...
 
     @abstractmethod
     def list_by_session_id(self, session_id: str) -> list[ChatMessage]: ...
@@ -51,7 +51,7 @@ class ChatMessageDAO(IChatMessageDAO):
     def create(
         self,
         session_id: str,
-        user_id: str,
+        visitor_id: str,
         role: MessageRole,
         content: str,
         token_count: int,
@@ -60,12 +60,12 @@ class ChatMessageDAO(IChatMessageDAO):
     ) -> ChatMessage:
         """Persist a new chat message.
 
-        message_index is MAX(message_index) + 1 for this user, or 0 if no prior messages.
+        message_index is MAX(message_index) + 1 for this visitor, or 0 if no prior messages.
         """
         try:
             max_index = (
                 self.db.query(func.max(ChatMessage.message_index))
-                .filter(ChatMessage.user_id == uuid.UUID(user_id))
+                .filter(ChatMessage.visitor_id == uuid.UUID(visitor_id))
                 .scalar()
             )
             next_index = 0 if max_index is None else max_index + 1
@@ -73,7 +73,7 @@ class ChatMessageDAO(IChatMessageDAO):
             message = ChatMessage(
                 id=uuid.uuid4(),
                 session_id=uuid.UUID(session_id),
-                user_id=uuid.UUID(user_id),
+                visitor_id=uuid.UUID(visitor_id),
                 role=role,
                 content=content,
                 token_count=token_count,
@@ -86,14 +86,14 @@ class ChatMessageDAO(IChatMessageDAO):
             self.db.refresh(message)
             return message
         except (OperationalError, IntegrityError, SADatabaseError) as exc:
-            logger.error("ChatMessageDAO.create failed for user_id=%s: %s", user_id, exc)
+            logger.error("ChatMessageDAO.create failed for visitor_id=%s: %s", visitor_id, exc)
             raise DatabaseError("Failed to create chat message") from exc
 
-    def list(self, user_id: str, limit: int = None) -> list[ChatMessage]:
+    def list(self, visitor_id: str, limit: int = None) -> list[ChatMessage]:
         try:
             query = (
                 self.db.query(ChatMessage)
-                .filter(ChatMessage.user_id == uuid.UUID(user_id))
+                .filter(ChatMessage.visitor_id == uuid.UUID(visitor_id))
                 .order_by(ChatMessage.message_index.asc())
             )
             if limit is not None:
@@ -105,7 +105,7 @@ class ChatMessageDAO(IChatMessageDAO):
                 )
             return query.all()
         except (OperationalError, SADatabaseError) as exc:
-            logger.error("ChatMessageDAO.list failed for user_id=%s: %s", user_id, exc)
+            logger.error("ChatMessageDAO.list failed for visitor_id=%s: %s", visitor_id, exc)
             raise DatabaseError("Failed to list chat messages") from exc
 
     def list_by_session_id(self, session_id: str) -> list[ChatMessage]:
@@ -162,10 +162,10 @@ class ChatMessageDAO(IChatMessageDAO):
 
 class IChatSessionDAO(ABC):
     @abstractmethod
-    def create(self, user_id: str) -> ChatSession: ...
+    def create(self, visitor_id: str) -> ChatSession: ...
 
     @abstractmethod
-    def get_active(self, user_id: str) -> ChatSession | None: ...
+    def get_active(self, visitor_id: str) -> ChatSession | None: ...
 
     @abstractmethod
     def update_status(self, session_id: str, is_active: bool) -> None: ...
@@ -178,11 +178,11 @@ class ChatSessionDAO(IChatSessionDAO):
     def __del__(self):
         self.db.close()
 
-    def create(self, user_id: str) -> ChatSession:
+    def create(self, visitor_id: str) -> ChatSession:
         try:
             session = ChatSession(
                 id=uuid.uuid4(),
-                user_id=uuid.UUID(user_id),
+                visitor_id=uuid.UUID(visitor_id),
                 is_active=True,
             )
             self.db.add(session)
@@ -190,22 +190,22 @@ class ChatSessionDAO(IChatSessionDAO):
             self.db.refresh(session)
             return session
         except (OperationalError, IntegrityError, SADatabaseError) as exc:
-            logger.error("ChatSessionDAO.create failed for user_id=%s: %s", user_id, exc)
+            logger.error("ChatSessionDAO.create failed for visitor_id=%s: %s", visitor_id, exc)
             raise DatabaseError("Failed to create chat session") from exc
 
-    def get_active(self, user_id: str) -> ChatSession | None:
+    def get_active(self, visitor_id: str) -> ChatSession | None:
         try:
             return (
                 self.db.query(ChatSession)
                 .filter(
-                    ChatSession.user_id == uuid.UUID(user_id),
+                    ChatSession.visitor_id == uuid.UUID(visitor_id),
                     ChatSession.is_active.is_(True),
                 )
                 .first()
             )
         except (OperationalError, SADatabaseError) as exc:
             logger.error(
-                "ChatSessionDAO.get_active failed for user_id=%s: %s", user_id, exc
+                "ChatSessionDAO.get_active failed for visitor_id=%s: %s", visitor_id, exc
             )
             raise DatabaseError("Failed to fetch active chat session") from exc
 

@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/marked@13/marked.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
   <script>const FEEDBACK_CHANGE_LIMIT = {{ feedback_change_limit }};</script>
-  <script src="/static/js/main.js?v=11"></script>
+  <script src="/static/js/main.js?v=12"></script>
 </head>
 <body>
 
@@ -36,15 +36,6 @@
         </svg>
       </button>
       <div class="logo">Prep<span>It</span></div>
-    </div>
-    <div class="user-section">
-      <div class="user-avatar" x-text="user.initials"></div>
-      <span class="user-name" x-text="user.name"></span>
-      <!--
-        Phase 2: wire to POST /api/auth/logout then redirect to /
-        For now the button is present but no-op (backend wired in Phase 2).
-      -->
-      <button class="signout-btn" @click="signOut()">Sign out</button>
     </div>
   </div>
 

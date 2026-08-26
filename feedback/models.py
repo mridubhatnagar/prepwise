@@ -11,7 +11,7 @@ from infra.postgres import Base
 class Feedback(Base):
     __tablename__ = "feedback"
     __table_args__ = (
-        Index("ix_feedback_user_id", "user_id"),
+        Index("ix_feedback_visitor_id", "visitor_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -23,11 +23,7 @@ class Feedback(Base):
         nullable=False,
         unique=True,
     )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    visitor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     rating: Mapped[str] = mapped_column(String(10), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

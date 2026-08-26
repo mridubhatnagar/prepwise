@@ -29,8 +29,8 @@ class ChatService:
             "limit_reached": limit_reached,
         }
 
-    def list_chat_messages(self, user_id: str, limit: int | None = None) -> list[ChatMessage]:
-        return self.chat_message_dao.list(user_id, limit)
+    def list_chat_messages(self, visitor_id: str, limit: int | None = None) -> list[ChatMessage]:
+        return self.chat_message_dao.list(visitor_id, limit)
 
     def list_chat_messages_by_session(self, session_id: str) -> list[ChatMessage]:
         return self.chat_message_dao.list_by_session_id(session_id)
@@ -38,7 +38,7 @@ class ChatService:
     def create_chat_message(
         self,
         session_id: str,
-        user_id: str,
+        visitor_id: str,
         role: MessageRole,
         content: str,
         token_count: int,
@@ -47,7 +47,7 @@ class ChatService:
     ) -> ChatMessage:
         return self.chat_message_dao.create(
             session_id=session_id,
-            user_id=user_id,
+            visitor_id=visitor_id,
             role=role,
             content=content,
             token_count=token_count,
@@ -63,12 +63,14 @@ class ChatSessionService:
     def __init__(self, chat_session_dao: IChatSessionDAO):
         self.chat_session_dao = chat_session_dao
 
-    def get_active_session(self, user_id: str) -> ChatSession | None:
-        return self.chat_session_dao.get_active(user_id)
+    def get_active_session(self, visitor_id: str) -> ChatSession | None:
+        return self.chat_session_dao.get_active(visitor_id)
 
-    def create_session(self, user_id: str) -> ChatSession:
-        session = self.chat_session_dao.create(user_id)
-        logger.info("Created new chat session session_id=%s for user_id=%s", session.id, user_id)
+    def create_session(self, visitor_id: str) -> ChatSession:
+        session = self.chat_session_dao.create(visitor_id)
+        logger.info(
+            "Created new chat session session_id=%s for visitor_id=%s", session.id, visitor_id
+        )
         return session
 
     def update_session_status(self, session_id: str, is_active: bool) -> None:

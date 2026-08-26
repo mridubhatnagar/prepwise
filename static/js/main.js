@@ -51,12 +51,100 @@ function uniqueStrings(items) {
   return [...new Set(items)];
 }
 
-/** @returns {string} Two-letter initials derived from a display name. */
-function computeInitials(name) {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0][0].toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+/**
+ * Alpine.js data object for the landing page.
+ *
+ * Handles the flash-message banner (auth-error query params, unchanged) and
+ * the Proceed button: click -> invisible Cloudflare Turnstile challenge ->
+ * on success, POST the token to /api/access/verify (mints the visitor_id
+ * cookie) -> redirect to /chat.
+ */
+function landingPage() {
+  return {
+    flashMessage: '',
+    showFlash:    false,
+    proceeding:   false,
+    _dismissTimer:      null,
+    _turnstileWidgetId: null,
+
+    async init() {
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get('error');
+
+      const messages = {
+        'session_expired':      "Your session has expired. Please verify again.",
+        'verification_failed':  "Verification failed. Please try again.",
+      };
+
+      if (error && messages[error]) {
+        this.flashMessage = messages[error];
+        this.showFlash = true;
+        this._startDismissTimer();
+      }
+
+      // The Turnstile script loads async — window.turnstile isn't guaranteed
+      // to exist yet when Alpine calls init(), so wait for its onload callback
+      // (wired up in landing.html) before rendering the widget.
+      await window._turnstileReady;
+      this._renderTurnstile();
+    },
+
+    _startDismissTimer() {
+      if (this._dismissTimer) clearTimeout(this._dismissTimer);
+      this._dismissTimer = setTimeout(() => { this.showFlash = false; }, 10000);
+    },
+
+    _renderTurnstile() {
+      if (!window.turnstile || !TURNSTILE_SITE_KEY) return;
+      this._turnstileWidgetId = window.turnstile.render('#turnstile-widget', {
+        sitekey:  TURNSTILE_SITE_KEY,
+        size:     'invisible',
+        execution: 'execute',
+        callback:        (token) => this._onTurnstileSuccess(token),
+        'error-callback': ()      => this._onTurnstileError(),
+      });
+    },
+
+    /** Click handler for the Proceed button — triggers the Turnstile challenge. */
+    proceed() {
+      if (this.proceeding) return;
+
+      if (!window.turnstile || this._turnstileWidgetId === null) {
+        this._onTurnstileError();
+        return;
+      }
+
+      this.proceeding = true;
+      window.turnstile.execute(this._turnstileWidgetId);
+    },
+
+    async _onTurnstileSuccess(token) {
+      try {
+        const res = await fetch('/api/access/verify', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ data: { token } }),
+        });
+
+        if (!res.ok) { this._onTurnstileError(); return; }
+
+        window.location.href = '/chat';
+      } catch (_) {
+        this._onTurnstileError();
+      }
+    },
+
+    _onTurnstileError() {
+      this.proceeding = false;
+      this.flashMessage = "Verification failed. Please try again.";
+      this.showFlash = true;
+      this._startDismissTimer();
+
+      if (window.turnstile && this._turnstileWidgetId !== null) {
+        window.turnstile.reset(this._turnstileWidgetId);
+      }
+    },
+  };
 }
 
 /**
@@ -66,7 +154,6 @@ function computeInitials(name) {
  *   messages           — array of message objects (user + AI)
  *   documents          — array of { name, category } — drives sidebar
  *   suggestions        — empty-state suggestion chips
- *   user               — { name, initials } — drives app bar
  *   inputText          — bound to textarea via x-model
  *   isLoading          — shows typing indicator while awaiting response
  *   contextLimitReached — shows/hides context limit banner
@@ -91,11 +178,6 @@ function chatApp() {
       'What is sharding?',
       'Explain the Transformer architecture',
     ],
-
-    user: {
-      name:     '',
-      initials: '',
-    },
 
     inputText:           '',
     isLoading:           false,
@@ -131,21 +213,9 @@ function chatApp() {
 
     async init() {
       await Promise.all([
-        this._loadUser(),
         this._loadDocuments(),
         this._loadMessages(),
       ]);
-    },
-
-    async _loadUser() {
-      try {
-        const res = await fetch('/api/auth/me');
-        if (res.status === 401) { this._redirectUnauthorized(); return; }
-        if (!res.ok) return;
-        const { data } = await res.json();
-        this.user.name     = data.user.name || '';
-        this.user.initials = computeInitials(data.user.name);
-      } catch (_) {}
     },
 
     async _loadDocuments() {
@@ -273,16 +343,6 @@ function chatApp() {
       this.messages            = [];
       this.contextLimitReached = false;
       this._errorBanner        = '';
-    },
-
-    /**
-     * Sign out via POST /api/auth/logout, then redirect to the landing page.
-     */
-    async signOut() {
-      try {
-        await fetch('/api/auth/logout', { method: 'POST' });
-      } catch (_) {}
-      window.location.href = '/';
     },
 
     /**

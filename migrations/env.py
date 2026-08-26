@@ -13,7 +13,6 @@ if config.config_file_name is not None:
 # Import all ORM models so Alembic's autogenerate can detect them.
 # Base must be imported first; model imports register their tables on Base.metadata.
 from infra.postgres import Base  # noqa: E402
-import auth.models  # noqa: E402, F401
 import chat.models  # noqa: E402, F401
 import spend.models  # noqa: E402, F401
 import feedback.models  # noqa: E402, F401
