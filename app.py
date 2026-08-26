@@ -47,8 +47,11 @@ def create_app() -> FastAPI:
     templates = Jinja2Templates(directory="templates")
 
     @app.get("/", include_in_schema=False)
-    async def landing_page():
-        return FileResponse("templates/landing.html")
+    async def landing_page(request: Request):
+        return templates.TemplateResponse("landing.html", {
+            "request": request,
+            "turnstile_site_key": config.TURNSTILE_SITE_KEY,
+        })
 
     @app.get("/chat", include_in_schema=False)
     async def chat(request: Request):
@@ -89,11 +92,13 @@ def create_app() -> FastAPI:
     async def health():
         return {"success": True, "data": {"status": "ok"}, "error": None}
 
+    from access.controller import router as access_router
     from auth.controller import router as auth_router
     from chat.controller import router as chat_router
     from documents.controller import router as documents_router
     from feedback.controller import router as feedback_router
 
+    app.include_router(access_router)
     app.include_router(auth_router)
     app.include_router(chat_router)
     app.include_router(documents_router)

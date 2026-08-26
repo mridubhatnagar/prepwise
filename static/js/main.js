@@ -60,6 +60,105 @@ function computeInitials(name) {
 }
 
 /**
+ * Alpine.js data object for the landing page.
+ *
+ * Handles the flash-message banner (auth-error query params, unchanged) and
+ * the Proceed button: click -> invisible Cloudflare Turnstile challenge ->
+ * on success, POST the token to /api/access/verify (mints the visitor_id
+ * cookie) -> redirect to /chat.
+ */
+function landingPage() {
+  return {
+    flashMessage: '',
+    showFlash:    false,
+    proceeding:   false,
+    _dismissTimer:      null,
+    _turnstileWidgetId: null,
+
+    async init() {
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get('error');
+
+      const messages = {
+        'invite_only':          "This account isn't on the invite list. Please contact the admin to request access.",
+        'unverified_email':     "Your Google account email is not verified. Please verify it and try again.",
+        'auth_failed':          "Sign-in failed due to an authentication error. Please try again.",
+        'session_expired':      "Your session has expired. Please verify again.",
+        'verification_failed':  "Verification failed. Please try again.",
+      };
+
+      if (error && messages[error]) {
+        this.flashMessage = messages[error];
+        this.showFlash = true;
+        this._startDismissTimer();
+      }
+
+      // The Turnstile script loads async — window.turnstile isn't guaranteed
+      // to exist yet when Alpine calls init(), so wait for its onload callback
+      // (wired up in landing.html) before rendering the widget.
+      await window._turnstileReady;
+      this._renderTurnstile();
+    },
+
+    _startDismissTimer() {
+      if (this._dismissTimer) clearTimeout(this._dismissTimer);
+      this._dismissTimer = setTimeout(() => { this.showFlash = false; }, 10000);
+    },
+
+    _renderTurnstile() {
+      if (!window.turnstile || !TURNSTILE_SITE_KEY) return;
+      this._turnstileWidgetId = window.turnstile.render('#turnstile-widget', {
+        sitekey:  TURNSTILE_SITE_KEY,
+        size:     'invisible',
+        execution: 'execute',
+        callback:        (token) => this._onTurnstileSuccess(token),
+        'error-callback': ()      => this._onTurnstileError(),
+      });
+    },
+
+    /** Click handler for the Proceed button — triggers the Turnstile challenge. */
+    proceed() {
+      if (this.proceeding) return;
+
+      if (!window.turnstile || this._turnstileWidgetId === null) {
+        this._onTurnstileError();
+        return;
+      }
+
+      this.proceeding = true;
+      window.turnstile.execute(this._turnstileWidgetId);
+    },
+
+    async _onTurnstileSuccess(token) {
+      try {
+        const res = await fetch('/api/access/verify', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ data: { token } }),
+        });
+
+        if (!res.ok) { this._onTurnstileError(); return; }
+
+        window.location.href = '/chat';
+      } catch (_) {
+        this._onTurnstileError();
+      }
+    },
+
+    _onTurnstileError() {
+      this.proceeding = false;
+      this.flashMessage = "Verification failed. Please try again.";
+      this.showFlash = true;
+      this._startDismissTimer();
+
+      if (window.turnstile && this._turnstileWidgetId !== null) {
+        window.turnstile.reset(this._turnstileWidgetId);
+      }
+    },
+  };
+}
+
+/**
  * Main Alpine.js data object for the chat page.
  *
  * State contract (must stay in sync with plan.md):

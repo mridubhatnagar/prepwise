@@ -25,3 +25,10 @@ LLM_HISTORY_WINDOW: int = 10
 GOOGLE_AUTH_URL: str = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL: str = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL: str = "https://www.googleapis.com/oauth2/v3/userinfo"
+
+# Cloudflare Turnstile
+TURNSTILE_VERIFY_URL: str = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+
+# Cookies
+VISITOR_COOKIE_NAME: str = "visitor_id"
+VISITOR_COOKIE_MAX_AGE_SECONDS: int = 60 * 60 * 24 * 365  # ~1 year

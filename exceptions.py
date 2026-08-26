@@ -16,3 +16,7 @@ class LLMError(Exception):
 
 class OAuthError(Exception):
     """Raised when Google OAuth state verification or token exchange fails."""
+
+
+class TurnstileError(Exception):
+    """Raised when the Cloudflare Turnstile siteverify request fails."""
