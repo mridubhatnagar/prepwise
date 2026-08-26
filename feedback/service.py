@@ -22,8 +22,8 @@ class FeedbackService:
         feedbacks = self.feedback_dao.get_by_message_ids(message_ids)
         return {str(f.message_id): f.rating for f in feedbacks}
 
-    def create_feedback(self, message_id: str, user_id: str, rating: str) -> Feedback:
-        return self.feedback_dao.create(message_id=message_id, user_id=user_id, rating=rating)
+    def create_feedback(self, message_id: str, visitor_id: str, rating: str) -> Feedback:
+        return self.feedback_dao.create(message_id=message_id, visitor_id=visitor_id, rating=rating)
 
     def update_feedback(self, feedback_id: str, rating: str) -> Feedback:
         return self.feedback_dao.update(feedback_id=feedback_id, rating=rating)
@@ -31,7 +31,7 @@ class FeedbackService:
     def delete_feedback(self, feedback_id: str) -> None:
         self.feedback_dao.delete_by_id(feedback_id=feedback_id)
 
-    def submit_feedback(self, user_id: str, message_id: str, rating: str | None) -> None:
+    def submit_feedback(self, visitor_id: str, message_id: str, rating: str | None) -> None:
         """Upsert or delete feedback for a message.
 
         If rating is None, existing feedback is removed.
@@ -41,7 +41,7 @@ class FeedbackService:
         """
         with _tracer.start_as_current_span("feedback.submit") as span:
             span.set_attribute("message_id", message_id)
-            span.set_attribute("user_id", user_id)
+            span.set_attribute("visitor_id", visitor_id)
             span.set_attribute("rating", rating if rating is not None else "null")
 
             existing = self.get_by_message_id(message_id)
@@ -50,23 +50,23 @@ class FeedbackService:
                 if existing is not None:
                     self.delete_feedback(str(existing.id))
                     logger.info(
-                        "Feedback removed for message_id=%s user_id=%s", message_id, user_id
+                        "Feedback removed for message_id=%s visitor_id=%s", message_id, visitor_id
                     )
                 return
 
             if existing is None:
-                self.create_feedback(message_id=message_id, user_id=user_id, rating=rating)
+                self.create_feedback(message_id=message_id, visitor_id=visitor_id, rating=rating)
                 logger.info(
-                    "Feedback created for message_id=%s user_id=%s rating=%s",
+                    "Feedback created for message_id=%s visitor_id=%s rating=%s",
                     message_id,
-                    user_id,
+                    visitor_id,
                     rating,
                 )
             else:
                 self.update_feedback(feedback_id=str(existing.id), rating=rating)
                 logger.info(
-                    "Feedback updated for message_id=%s user_id=%s rating=%s",
+                    "Feedback updated for message_id=%s visitor_id=%s rating=%s",
                     message_id,
-                    user_id,
+                    visitor_id,
                     rating,
                 )

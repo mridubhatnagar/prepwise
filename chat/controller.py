@@ -1,17 +1,22 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from jose import JWTError
-from jose import jwt as jose_jwt
 
-from auth.scopes import require_scope
+from access.dependencies import require_visitor
 from chat.dao import ChatMessageDAO, ChatSessionDAO, IChatMessageDAO, IChatSessionDAO
 from chat.request_handler import ChatRequestHandler
 from chat.service import ChatService, ChatSessionService
 from chat.validators import PostMessageRequest
 from config import config
-from enums import MessageRole, Scope
-from exceptions import DatabaseError, EmbeddingError, LLMError, RetrievalError
+from constants import VISITOR_COOKIE_NAME
+from enums import MessageRole
+from exceptions import (
+    DatabaseError,
+    EmbeddingError,
+    LLMError,
+    RetrievalError,
+    SpendCapExceededError,
+)
 from feedback.dao import FeedbackDAO, IFeedbackDAO
 from feedback.service import FeedbackService
 from limiter import limiter
@@ -85,63 +90,55 @@ def get_chat_request_handler(
     )
 
 
-def _get_user_id_key(request: Request) -> str:
-    """Return the user_id from the JWT cookie/header for per-user rate limiting.
+def _get_visitor_id_key(request: Request) -> str:
+    """Return the visitor_id cookie value for per-visitor rate limiting.
 
-    Falls back to the remote IP address if the token cannot be decoded.
+    Falls back to the remote IP address if the cookie is missing.
     """
-    token = request.cookies.get("jwt")
-    if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[len("Bearer "):]
-
-    if token:
-        try:
-            payload = jose_jwt.decode(
-                token, config.JWT_SECRET, algorithms=[config.JWT_ALGORITHM]
-            )
-            user_id = payload.get("user_id")
-            if user_id:
-                return str(user_id)
-        except JWTError:
-            pass
+    visitor_id = request.cookies.get(VISITOR_COOKIE_NAME)
+    if visitor_id:
+        return visitor_id
 
     return request.client.host if request.client else "unknown"
 
 
-def _resolve_session(user_id: str, chat_session_service: ChatSessionService) -> str:
-    """Return the active session_id for the user, creating one if none exists."""
-    session = chat_session_service.get_active_session(user_id)
+def _resolve_session(visitor_id: str, chat_session_service: ChatSessionService) -> str:
+    """Return the active session_id for the visitor, creating one if none exists."""
+    session = chat_session_service.get_active_session(visitor_id)
     if session is None:
-        session = chat_session_service.create_session(user_id)
+        session = chat_session_service.create_session(visitor_id)
     return str(session.id)
 
 
 @router.post("/api/chat/messages")
-@limiter.limit(f"{config.CHAT_RATE_LIMIT}/minute", key_func=_get_user_id_key)
+@limiter.limit(f"{config.CHAT_RATE_LIMIT}/minute", key_func=_get_visitor_id_key)
 async def post_message(
     request: Request,
     body: PostMessageRequest,
-    user=Depends(require_scope(Scope.APP)),
+    visitor=Depends(require_visitor),
     handler: ChatRequestHandler = Depends(get_chat_request_handler),
     chat_session_service: ChatSessionService = Depends(get_chat_session_service),
 ):
     """Submit a chat message and receive an AI-generated response.
 
-    Rate limited per authenticated user_id.
+    Rate limited per visitor_id.
     """
     query = body.data.message
 
     try:
-        session_id = _resolve_session(str(user.id), chat_session_service)
+        session_id = _resolve_session(str(visitor.id), chat_session_service)
         result = handler.handle_chat_message(
-            user_id=str(user.id), session_id=session_id, query=query
+            visitor_id=str(visitor.id), session_id=session_id, query=query
         )
     except ValueError:
         raise HTTPException(
             status_code=400,
             detail="Unable to process your request. Please try again.",
+        )
+    except SpendCapExceededError:
+        raise HTTPException(
+            status_code=503,
+            detail="Chat is temporarily unavailable — we've reached today's usage limit. Please try again tomorrow.",
         )
     except (EmbeddingError, RetrievalError):
         raise HTTPException(
@@ -164,14 +161,14 @@ async def post_message(
 
 @router.get("/api/chat/messages")
 async def get_messages(
-    user=Depends(require_scope(Scope.APP)),
+    visitor=Depends(require_visitor),
     handler: ChatRequestHandler = Depends(get_chat_request_handler),
     chat_session_service: ChatSessionService = Depends(get_chat_session_service),
     feedback_service: FeedbackService = Depends(get_feedback_service),
 ):
-    """Return the message history for the user's active session."""
+    """Return the message history for the visitor's active session."""
     try:
-        session_id = _resolve_session(str(user.id), chat_session_service)
+        session_id = _resolve_session(str(visitor.id), chat_session_service)
         messages = handler.list_messages(session_id=session_id)
     except DatabaseError:
         raise HTTPException(
@@ -207,7 +204,7 @@ async def get_messages(
 
 @router.post("/api/chat/sessions")
 async def create_session(
-    user=Depends(require_scope(Scope.APP)),
+    visitor=Depends(require_visitor),
     chat_session_service: ChatSessionService = Depends(get_chat_session_service),
 ):
     """Clear Chat — deactivate the current session and create a new one.
@@ -215,23 +212,23 @@ async def create_session(
     Messages from the previous session are retained in the database.
     """
     try:
-        existing = chat_session_service.get_active_session(str(user.id))
+        existing = chat_session_service.get_active_session(str(visitor.id))
         if existing is not None:
             chat_session_service.update_session_status(str(existing.id), False)
             logger.info(
-                "Deactivated session session_id=%s for user_id=%s",
+                "Deactivated session session_id=%s for visitor_id=%s",
                 existing.id,
-                user.id,
+                visitor.id,
             )
 
-        new_session = chat_session_service.create_session(str(user.id))
+        new_session = chat_session_service.create_session(str(visitor.id))
     except DatabaseError:
         raise HTTPException(
             status_code=503,
             detail="Something went wrong. Please try again.",
         )
 
-    logger.info("Chat cleared for user_id=%s new_session_id=%s", user.id, new_session.id)
+    logger.info("Chat cleared for visitor_id=%s new_session_id=%s", visitor.id, new_session.id)
     return {
         "success": True,
         "data": {"session_id": str(new_session.id)},

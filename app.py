@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -8,10 +8,10 @@ from fastapi.templating import Jinja2Templates
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from access.dependencies import require_visitor
 from config import config
 from constants import FEEDBACK_CHANGE_LIMIT
-from dependencies import get_current_user
-from enums import Scope
+from dependencies import verify_docs_credentials
 from infra.postgres import SessionLocal
 from limiter import limiter
 
@@ -28,7 +28,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="PrepWise",
-        docs_url=None,   # served manually at /docs with scope check
+        docs_url=None,   # served manually at /docs, gated by HTTP Basic Auth
         redoc_url=None,
     )
 
@@ -47,18 +47,18 @@ def create_app() -> FastAPI:
     templates = Jinja2Templates(directory="templates")
 
     @app.get("/", include_in_schema=False)
-    async def landing_page():
-        return FileResponse("templates/landing.html")
+    async def landing_page(request: Request):
+        return templates.TemplateResponse("landing.html", {
+            "request": request,
+            "turnstile_site_key": config.TURNSTILE_SITE_KEY,
+        })
 
     @app.get("/chat", include_in_schema=False)
     async def chat(request: Request):
         try:
-            user = get_current_user(request)
+            require_visitor(request)
         except HTTPException:
             return RedirectResponse(url="/", status_code=302)
-
-        if Scope.APP not in user.scopes:
-            return FileResponse("templates/error.html", status_code=403)
 
         return templates.TemplateResponse("chat.html", {
             "request": request,
@@ -66,15 +66,7 @@ def create_app() -> FastAPI:
         })
 
     @app.get("/docs", include_in_schema=False)
-    async def docs(request: Request):
-        try:
-            user = get_current_user(request)
-        except HTTPException:
-            return FileResponse("templates/error.html", status_code=403)
-
-        if Scope.DOCS not in user.scopes:
-            return FileResponse("templates/error.html", status_code=403)
-
+    async def docs(credentials: str = Depends(verify_docs_credentials)):
         return get_swagger_ui_html(openapi_url="/openapi.json", title="PrepWise API Docs")
 
     @app.exception_handler(403)
@@ -89,15 +81,17 @@ def create_app() -> FastAPI:
     async def health():
         return {"success": True, "data": {"status": "ok"}, "error": None}
 
-    from auth.controller import router as auth_router
+    from access.controller import router as access_router
     from chat.controller import router as chat_router
     from documents.controller import router as documents_router
     from feedback.controller import router as feedback_router
+    from spend.controller import router as spend_router
 
-    app.include_router(auth_router)
+    app.include_router(access_router)
     app.include_router(chat_router)
     app.include_router(documents_router)
     app.include_router(feedback_router)
+    app.include_router(spend_router)
 
     return app
 

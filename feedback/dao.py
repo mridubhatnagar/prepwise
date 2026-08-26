@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class IFeedbackDAO(ABC):
     @abstractmethod
-    def create(self, message_id: str, user_id: str, rating: str) -> Feedback: ...
+    def create(self, message_id: str, visitor_id: str, rating: str) -> Feedback: ...
 
     @abstractmethod
     def update(self, feedback_id: str, rating: str) -> Feedback: ...
@@ -38,12 +38,12 @@ class FeedbackDAO(IFeedbackDAO):
     def __del__(self):
         self.db.close()
 
-    def create(self, message_id: str, user_id: str, rating: str) -> Feedback:
+    def create(self, message_id: str, visitor_id: str, rating: str) -> Feedback:
         try:
             feedback = Feedback(
                 id=uuid.uuid4(),
                 message_id=uuid.UUID(message_id),
-                user_id=uuid.UUID(user_id),
+                visitor_id=uuid.UUID(visitor_id),
                 rating=rating,
             )
             self.db.add(feedback)
@@ -52,9 +52,9 @@ class FeedbackDAO(IFeedbackDAO):
             return feedback
         except (OperationalError, IntegrityError, SADatabaseError) as exc:
             logger.error(
-                "FeedbackDAO.create failed for message_id=%s user_id=%s: %s",
+                "FeedbackDAO.create failed for message_id=%s visitor_id=%s: %s",
                 message_id,
-                user_id,
+                visitor_id,
                 exc,
             )
             raise DatabaseError("Failed to create feedback") from exc

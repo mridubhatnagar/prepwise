@@ -2,10 +2,9 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from auth.scopes import require_scope
+from access.dependencies import require_visitor
 from documents.dao import DocumentDAO, IDocumentDAO
 from documents.service import DocumentService
-from enums import Scope
 from exceptions import RetrievalError
 
 logger = logging.getLogger(__name__)
@@ -25,7 +24,7 @@ def get_document_service(
 
 @router.get("/api/documents")
 async def get_documents(
-    user=Depends(require_scope(Scope.APP)),
+    visitor=Depends(require_visitor),
     service: DocumentService = Depends(get_document_service),
 ):
     """Return all knowledge-base documents grouped by category."""
