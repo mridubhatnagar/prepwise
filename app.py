@@ -53,6 +53,10 @@ def create_app() -> FastAPI:
             "turnstile_site_key": config.TURNSTILE_SITE_KEY,
         })
 
+    @app.get("/privacy", include_in_schema=False)
+    async def privacy(request: Request):
+        return templates.TemplateResponse("privacy.html", {"request": request})
+
     @app.get("/chat", include_in_schema=False)
     async def chat(request: Request):
         try:
