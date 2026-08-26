@@ -6,6 +6,7 @@ from chat.models import ChatMessage
 from chat.service import ChatService
 from constants import EMBEDDING_MODEL, LLM_HISTORY_WINDOW, LLM_MODEL
 from enums import MessageRole
+from exceptions import SpendCapExceededError
 from rag.constants import OUT_OF_SCOPE_ANSWER
 from rag.orchestrator import RAGOrchestrator
 from spend.service import SpendService
@@ -38,7 +39,20 @@ class ChatRequestHandler:
 
         Returns a response dict matching the POST /api/chat/messages envelope:
         { answer, assistant_message_id, citations, follow_up_questions, context_status }
+
+        Raises:
+            SpendCapExceededError: If today's spend has reached the configured
+                hard daily cap — checked before any retrieval/LLM cost is
+                incurred.
         """
+        if self.spend_service.is_daily_cap_exceeded():
+            logger.warning(
+                "Chat blocked for visitor_id=%s session_id=%s: daily spend cap exceeded",
+                visitor_id,
+                session_id,
+            )
+            raise SpendCapExceededError("Daily spend cap exceeded")
+
         context_status = self._check_context(session_id)
 
         if context_status is not None:

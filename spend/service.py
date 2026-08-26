@@ -69,6 +69,26 @@ class SpendService:
     def get_total_spend(self) -> float:
         return self.spend_dao.get_total()
 
+    def is_daily_cap_exceeded(self) -> bool:
+        """Return True if today's total spend has reached the configured hard cap.
+
+        Returns False when ``DAILY_SPEND_CAP_USD`` is unset, so chat is never
+        blocked by an unconfigured cap. This is a hard, blocking check —
+        distinct from ``spend_email_alert``'s notify-only crossing-point
+        alert, which remains unchanged.
+        """
+        cap = config.DAILY_SPEND_CAP_USD
+        if cap is None:
+            return False
+
+        today_total = self.get_total_spend_per_day(date.today())
+        exceeded = today_total >= cap
+        if exceeded:
+            logger.warning(
+                "Daily spend cap exceeded: today_total=%.4f cap=%.2f", today_total, cap
+            )
+        return exceeded
+
     def spend_email_alert(self, current_cost: Decimal) -> None:
         """Send a spend alert email if the cumulative threshold has just been crossed.
 
